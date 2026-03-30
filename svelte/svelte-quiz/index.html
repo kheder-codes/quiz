@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Svelte Quiz – Azubis</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f4f0;
+    --color-bg-info: #e6f1fb;
+    --color-bg-success: #eaf3de;
+    --color-bg-danger: #fcebeb;
+    --color-text: #1a1a18;
+    --color-text-secondary: #5f5e5a;
+    --color-text-tertiary: #888780;
+    --color-text-info: #185fa5;
+    --color-text-success: #3b6d11;
+    --color-text-danger: #a32d2d;
+    --color-border: rgba(0,0,0,0.12);
+    --color-border-strong: rgba(0,0,0,0.3);
+    --radius: 10px;
+    --font: system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-bg: #1c1c1a;
+      --color-bg-secondary: #252523;
+      --color-bg-info: #042c53;
+      --color-bg-success: #173404;
+      --color-bg-danger: #501313;
+      --color-text: #e8e7e0;
+      --color-text-secondary: #b4b2a9;
+      --color-text-tertiary: #888780;
+      --color-text-info: #85b7eb;
+      --color-text-success: #97c459;
+      --color-text-danger: #f09595;
+      --color-border: rgba(255,255,255,0.1);
+      --color-border-strong: rgba(255,255,255,0.28);
+    }
+  }
+  body { background: var(--color-bg); color: var(--color-text); font-family: var(--font); font-size: 16px; line-height: 1.6; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem 4rem; }
+  .card { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 16px; padding: 2rem; width: 100%; max-width: 660px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.25rem; }
+  .subtitle { font-size: 13px; color: var(--color-text-tertiary); margin-bottom: 1.5rem; }
+  .progress-label { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 5px; }
+  .progress-bar { background: var(--color-border); border-radius: 99px; height: 6px; margin-bottom: 1.5rem; }
+  .progress-fill { background: var(--color-text-info); height: 6px; border-radius: 99px; transition: width .4s; }
+  .section-badge { display: inline-block; font-size: 11px; font-weight: 500; background: var(--color-bg-info); color: var(--color-text-info); border-radius: 99px; padding: 2px 10px; margin-bottom: 10px; }
+  .question { font-size: 16px; font-weight: 500; line-height: 1.5; margin-bottom: 0.25rem; }
+  .question-sub { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1.1rem; line-height: 1.5; }
+  .code-block { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: var(--color-text); }
+  .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.2rem; }
+  .option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1.5px solid var(--color-border); border-radius: var(--radius); cursor: pointer; transition: border-color .15s, background .15s; font-size: 14px; line-height: 1.5; background: var(--color-bg); }
+  .option:hover:not(.disabled) { border-color: var(--color-border-strong); background: var(--color-bg-secondary); }
+  .option.selected { border-color: var(--color-text-info); background: var(--color-bg-info); }
+  .option.correct { border-color: var(--color-text-success); background: var(--color-bg-success); }
+  .option.wrong { border-color: var(--color-text-danger); background: var(--color-bg-danger); }
+  .option.disabled { cursor: default; }
+  .option-letter { min-width: 22px; font-weight: 500; color: var(--color-text-tertiary); }
+  .feedback { border-radius: var(--radius); padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 1rem; }
+  .feedback.correct { background: var(--color-bg-success); color: var(--color-text-success); border: 1px solid var(--color-text-success); }
+  .feedback.wrong { background: var(--color-bg-danger); color: var(--color-text-danger); border: 1px solid var(--color-text-danger); }
+  .feedback strong { font-weight: 500; }
+  .btn { display: inline-block; padding: 9px 22px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: opacity .15s; font-family: var(--font); }
+  .btn-primary { background: var(--color-text-info); color: #fff; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: .4; cursor: default; }
+  .btn-ghost { background: var(--color-bg-secondary); color: var(--color-text); border: 1px solid var(--color-border); }
+  .btn-ghost:hover { border-color: var(--color-border-strong); }
+  .nav { display: flex; justify-content: flex-end; align-items: center; margin-top: 0.5rem; }
+  .result-wrap { text-align: center; padding: 1rem 0 1.5rem; }
+  .score-big { font-size: 52px; font-weight: 500; line-height: 1; margin: 0.5rem 0; }
+  .score-sub { color: var(--color-text-secondary); margin-bottom: 1.5rem; font-size: 15px; }
+  .result-detail { text-align: left; display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; }
+  .result-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: var(--radius); font-size: 13px; line-height: 1.5; }
+  .result-row.ok { background: var(--color-bg-success); color: var(--color-text-success); }
+  .result-row.nok { background: var(--color-bg-danger); color: var(--color-text-danger); }
+  .result-icon { font-size: 15px; min-width: 20px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Svelte Quiz</h1>
+  <p class="subtitle">Für React-Entwickler – Basic Svelte Tutorial</p>
+  <div id="app"></div>
+</div>
+
+<script>
+const questions = [
+  {
+    section: "Grundkonzept",
+    q: "Was ist der fundamentale Unterschied zwischen Svelte und React in der Architektur?",
+    sub: "Denk daran, wie React-Apps im Browser ausgeführt werden.",
+    options: [
+      "Svelte verwendet einen Virtual DOM, React nicht",
+      "Svelte kompiliert Komponenten zu nativem JavaScript – es läuft kein Framework-Code im Browser",
+      "Svelte ist nur für kleinere Projekte geeignet, React für große",
+      "Svelte benötigt zwingend TypeScript"
+    ],
+    correct: 1,
+    feedback: "Genau! React liefert die React-Bibliothek selbst mit aus und nutzt einen Virtual DOM zur Laufzeit. Svelte hingegen ist ein Compiler – der produziert reines, effizientes JavaScript, das ohne Framework-Overhead im Browser läuft."
+  },
+  {
+    section: "Komponenten",
+    q: "Wie ist eine Svelte-Komponente aufgebaut?",
+    code: `<!-- Beispiel: App.svelte -->
+<script>
+  let name = 'Welt';
+<\/script>
+
+<h1>Hallo {name}!</h1>
+
+<style>
+  h1 { color: purple; }
+</style>`,
+    options: [
+      "Nur ein &lt;script&gt;-Block, HTML und CSS sind in JS eingebettet (wie in React/JSX)",
+      "Eine .svelte-Datei mit optionalem &lt;script&gt;, HTML-Template und &lt;style&gt; – alles in einer Datei",
+      "Eine Klasse, die von SvelteComponent erbt",
+      "Ausschließlich Funktionen, keine Klassen und keine Templates"
+    ],
+    correct: 1,
+    feedback: "Richtig! Eine Svelte-Komponente ist eine .svelte-Datei mit drei optionalen Bereichen: &lt;script&gt; für Logik, HTML-Markup für das Template und &lt;style&gt; für Styling – alles in einer Datei. Das ist ähnlich wie Vue Single File Components, aber anders als React, wo JSX und Logik zusammen in JS/TS stehen."
+  },
+  {
+    section: "Reaktivität",
+    q: "Wie funktioniert State in Svelte 5 im Vergleich zu React?",
+    code: `// React
+const [count, setCount] = useState(0);
+setCount(count + 1);
+
+// Svelte 5
+let count = $state(0);
+count++;`,
+    options: [
+      "In Svelte muss man wie in React immer einen Setter aufrufen",
+      "In Svelte 5 macht $state() eine Variable reaktiv – direkte Zuweisung (count++) reicht aus",
+      "In Svelte gibt es gar keinen State, nur Props",
+      "Svelte verwendet Observables aus RxJS für Reaktivität"
+    ],
+    correct: 1,
+    feedback: "Super! In React braucht man immer useState() und den Setter (setCount). Svelte 5 nutzt Runes: $state() macht eine Variable reaktiv, und eine normale Zuweisung wie count++ löst das UI-Update aus. Kein Setter, kein Wrapper nötig."
+  },
+  {
+    section: "Reaktivität",
+    q: "Was gibt $derived() in Svelte aus und wann wird es neu berechnet?",
+    code: `let count = $state(0);
+let doubled = $derived(count * 2);`,
+    options: [
+      "doubled ist ein Objekt mit .value-Property, manuell aktualisierbar",
+      "doubled ist immer gleich 0, weil $derived() einmalig ausgeführt wird",
+      "doubled ist eine automatisch reaktive Ableitung – sie wird neu berechnet, sobald count sich ändert",
+      "$derived() entspricht useCallback() in React"
+    ],
+    correct: 2,
+    feedback: "Richtig! $derived() entspricht useMemo() in React. Der Wert wird automatisch neu berechnet, wenn sich eine Abhängigkeit (hier: count) ändert. Kein Dependency-Array nötig – Svelte erkennt die Abhängigkeiten selbst."
+  },
+  {
+    section: "Props",
+    q: "Wie definiert man Props in einer Svelte-Komponente?",
+    code: `// React
+function Button({ label, disabled = false }) { ... }
+
+// Svelte 5 – wie sieht das aus?`,
+    options: [
+      "let { label, disabled = false } = $props();",
+      "export const props = defineProps(['label', 'disabled'])",
+      "props.label und props.disabled, wie in React",
+      "@Input() label: string; (wie in Angular)"
+    ],
+    correct: 0,
+    feedback: "Korrekt! In Svelte 5 nutzt man $props() mit Destructuring: let { label, disabled = false } = $props(); – sehr ähnlich zur React-Syntax mit Defaultwerten. In Svelte 4 war es export let label; – das sieht man noch in älterem Code."
+  },
+  {
+    section: "Templates / Logik",
+    q: "Wie rendert man in Svelte eine Liste von Elementen?",
+    code: `// React
+items.map(item => <li key={item.id}>{item.name}</li>)
+
+// Svelte – welche Syntax ist korrekt?`,
+    options: [
+      "{items.map(item => &lt;li&gt;{item.name}&lt;/li&gt;)}",
+      "{#each items as item}&lt;li&gt;{item.name}&lt;/li&gt;{/each}",
+      "&lt;For each={items}&gt;{item => &lt;li&gt;{item.name}&lt;/li&gt;}&lt;/For&gt;",
+      "v-for='item in items' (wie in Vue)"
+    ],
+    correct: 1,
+    feedback: "Genau! Svelte hat eigene Template-Direktiven: {#each items as item}...{/each}. Kein .map() mit JSX nötig. Für Keying: {#each items as item (item.id)}. Das ist eine der größten syntaktischen Unterschiede zu React."
+  },
+  {
+    section: "Templates / Logik",
+    q: "Was ist der Svelte-Äquivalent zu bedingtem Rendering mit && oder dem ternären Operator in React?",
+    code: `// React
+{isLoggedIn && <Dashboard />}
+{isLoggedIn ? <Dashboard /> : <Login />}`,
+    options: [
+      "{isLoggedIn ? &lt;Dashboard /&gt; : null} – identisch zu React",
+      "{#if isLoggedIn}&lt;Dashboard /&gt;{:else}&lt;Login /&gt;{/if}",
+      "&lt;Show when={isLoggedIn}&gt;&lt;Dashboard /&gt;&lt;/Show&gt;",
+      "v-if='isLoggedIn' auf dem Element"
+    ],
+    correct: 1,
+    feedback: "Richtig! Svelte nutzt {#if ...}{:else if ...}{:else}{/if}-Blöcke statt JavaScript-Ausdrücken. Das wirkt auf den ersten Blick ungewohnt für React-Entwickler, ist aber gut lesbar und direkt im Template ohne JS-Tricks."
+  },
+  {
+    section: "Events & Bindings",
+    q: "Wie unterscheidet sich Two-Way-Binding in Svelte von React?",
+    code: `// React – kein echtes Two-Way-Binding
+const [value, setValue] = useState('');
+<input value={value} onChange={e => setValue(e.target.value)} />
+
+// Svelte – wie geht das einfacher?`,
+    options: [
+      "Auch in Svelte braucht man immer einen Handler mit onInput",
+      "bind:value={name} – Svelte hat echtes Two-Way-Binding eingebaut",
+      "v-model='name' (Vue-Syntax funktioniert auch in Svelte)",
+      "ngModel='name' ist der korrekte Svelte-Weg"
+    ],
+    correct: 1,
+    feedback: "Super! bind:value={name} synchronisiert den Input-Wert und die Variable automatisch in beide Richtungen. React hat kein eingebautes Two-Way-Binding und erfordert immer einen onChange-Handler. Svelte macht das mit einer Zeile."
+  },
+  {
+    section: "Styling",
+    q: "Was passiert mit CSS-Stilen, die in einem &lt;style&gt;-Block einer Svelte-Komponente definiert sind?",
+    options: [
+      "Sie werden global angewendet – alle h1-Tags der ganzen App werden rot",
+      "Styles sind standardmäßig scoped – sie gelten nur für Elemente in dieser Komponente",
+      "Man muss CSS Modules separat einrichten, wie in React",
+      "Svelte unterstützt kein CSS, nur Inline-Styles"
+    ],
+    correct: 1,
+    feedback: "Genau! Svelte scoped Styles automatisch auf Komponentenebene – kein CSS Modules Setup, kein styled-components nötig. Svelte fügt automatisch einen eindeutigen Klassen-Hash hinzu (z.B. svelte-xyz). In React muss man das selbst lösen (CSS Modules, styled-components, Tailwind, etc.)."
+  },
+  {
+    section: "Lifecycle / Effects",
+    q: "Wie ersetzt $effect() in Svelte 5 das useEffect() aus React?",
+    code: `// React
+useEffect(() => {
+  document.title = count + ' Klicks';
+}, [count]);
+
+// Svelte 5
+$effect(() => {
+  document.title = count + ' Klicks';
+});`,
+    options: [
+      "Kein Unterschied – beide brauchen ein Dependency-Array",
+      "In Svelte muss man Abhängigkeiten mit watch:[] explizit deklarieren",
+      "$effect() trackt Abhängigkeiten automatisch – kein Dependency-Array nötig",
+      "$effect() läuft nur einmal beim Mounten, nicht bei Updates"
+    ],
+    correct: 2,
+    feedback: "Richtig! Das ist ein großer Unterschied: useEffect() in React braucht ein Dependency-Array (und vergessene Deps führen zu Bugs). $effect() in Svelte analysiert zur Compile-Zeit, welche reaktiven Werte gelesen werden, und trackt sie automatisch."
+  }
+];
+
+let current = 0;
+let selected = null;
+let answered = false;
+let results = [];
+let showResult = false;
+
+function render() {
+  const app = document.getElementById('app');
+  if (showResult) { renderResult(app); return; }
+  const q = questions[current];
+  const pct = (current / questions.length) * 100;
+  const letters = ['A','B','C','D'];
+  let html = `
+    <div class="progress-label">${current + 1} / ${questions.length}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="section-badge">${q.section}</div>
+    <div class="question">${q.q}</div>
+    ${q.sub ? `<div class="question-sub">${q.sub}</div>` : ''}
+    ${q.code ? `<div class="code-block">${escCode(q.code)}</div>` : ''}
+    <div class="options">`;
+  q.options.forEach((opt, i) => {
+    let cls = 'option';
+    if (answered) {
+      cls += ' disabled';
+      if (i === q.correct) cls += ' correct';
+      else if (i === selected && i !== q.correct) cls += ' wrong';
+    } else if (i === selected) cls += ' selected';
+    const click = answered ? '' : `onclick="selectOption(${i})"`;
+    html += `<div class="${cls}" ${click}><span class="option-letter">${letters[i]}</span><span>${opt}</span></div>`;
+  });
+  html += `</div>`;
+  if (answered) {
+    const ok = selected === q.correct;
+    html += `<div class="feedback ${ok ? 'correct' : 'wrong'}"><strong>${ok ? '✓ Richtig!' : '✗ Leider nicht.'}</strong> ${q.feedback}</div>`;
+  }
+  html += `<div class="nav">`;
+  if (!answered) {
+    html += `<button class="btn btn-primary" onclick="checkAnswer()" ${selected === null ? 'disabled' : ''}>Antwort prüfen</button>`;
+  } else {
+    const last = current === questions.length - 1;
+    html += `<button class="btn btn-primary" onclick="nextQ()">${last ? 'Ergebnis anzeigen' : 'Nächste Frage →'}</button>`;
+  }
+  html += `</div>`;
+  app.innerHTML = html;
+}
+
+function renderResult(app) {
+  const score = results.filter(r => r.ok).length;
+  const pct = Math.round(score / questions.length * 100);
+  const emoji = pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪';
+  const msg = pct >= 80 ? 'Ausgezeichnet – ihr habt Svelte gut verstanden!' : pct >= 50 ? 'Solide Basis! Ein paar Konzepte nochmal wiederholen.' : 'Nochmal ans Tutorial – dann klappt es!';
+  let html = `<div class="result-wrap">
+    <div class="score-big">${emoji} ${score}/${questions.length}</div>
+    <div class="score-sub">${pct}% korrekt · ${msg}</div>
+    <div class="result-detail">`;
+  results.forEach((r, i) => {
+    html += `<div class="result-row ${r.ok ? 'ok' : 'nok'}">
+      <span class="result-icon">${r.ok ? '✓' : '✗'}</span>
+      <span><strong>${questions[i].section}:</strong> ${questions[i].q.substring(0, 65)}${questions[i].q.length > 65 ? '…' : ''}</span>
+    </div>`;
+  });
+  html += `</div><button class="btn btn-ghost" onclick="restart()">Nochmal versuchen</button></div>`;
+  app.innerHTML = html;
+}
+
+function escCode(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function selectOption(i) { if (answered) return; selected = i; render(); }
+function checkAnswer() { if (selected === null) return; answered = true; results[current] = { ok: selected === questions[current].correct }; render(); }
+function nextQ() { current++; selected = null; answered = false; if (current >= questions.length) showResult = true; render(); }
+function restart() { current = 0; selected = null; answered = false; results = []; showResult = false; render(); }
+render();
+</script>
+</body>
+</html>
