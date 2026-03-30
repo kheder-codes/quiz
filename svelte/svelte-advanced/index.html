@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Svelte Advanced Quiz – Azubis</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f4f0;
+    --color-bg-info: #e6f1fb;
+    --color-bg-success: #eaf3de;
+    --color-bg-danger: #fcebeb;
+    --color-text: #1a1a18;
+    --color-text-secondary: #5f5e5a;
+    --color-text-tertiary: #888780;
+    --color-text-info: #185fa5;
+    --color-text-success: #3b6d11;
+    --color-text-danger: #a32d2d;
+    --color-border: rgba(0,0,0,0.12);
+    --color-border-strong: rgba(0,0,0,0.3);
+    --radius: 10px;
+    --font: system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-bg: #1c1c1a;
+      --color-bg-secondary: #252523;
+      --color-bg-info: #042c53;
+      --color-bg-success: #173404;
+      --color-bg-danger: #501313;
+      --color-text: #e8e7e0;
+      --color-text-secondary: #b4b2a9;
+      --color-text-tertiary: #888780;
+      --color-text-info: #85b7eb;
+      --color-text-success: #97c459;
+      --color-text-danger: #f09595;
+      --color-border: rgba(255,255,255,0.1);
+      --color-border-strong: rgba(255,255,255,0.28);
+    }
+  }
+  body { background: var(--color-bg); color: var(--color-text); font-family: var(--font); font-size: 16px; line-height: 1.6; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem 4rem; }
+  .card { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 16px; padding: 2rem; width: 100%; max-width: 660px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.25rem; }
+  .subtitle { font-size: 13px; color: var(--color-text-tertiary); margin-bottom: 1.5rem; }
+  .progress-label { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 5px; }
+  .progress-bar { background: var(--color-border); border-radius: 99px; height: 6px; margin-bottom: 1.5rem; }
+  .progress-fill { background: var(--color-text-info); height: 6px; border-radius: 99px; transition: width .4s; }
+  .section-badge { display: inline-block; font-size: 11px; font-weight: 500; background: var(--color-bg-info); color: var(--color-text-info); border-radius: 99px; padding: 2px 10px; margin-bottom: 10px; }
+  .question { font-size: 16px; font-weight: 500; line-height: 1.5; margin-bottom: 0.25rem; }
+  .question-sub { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1.1rem; line-height: 1.5; }
+  .code-block { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: var(--color-text); }
+  .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.2rem; }
+  .option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1.5px solid var(--color-border); border-radius: var(--radius); cursor: pointer; transition: border-color .15s, background .15s; font-size: 14px; line-height: 1.5; background: var(--color-bg); }
+  .option:hover:not(.disabled) { border-color: var(--color-border-strong); background: var(--color-bg-secondary); }
+  .option.selected { border-color: var(--color-text-info); background: var(--color-bg-info); }
+  .option.correct { border-color: var(--color-text-success); background: var(--color-bg-success); }
+  .option.wrong { border-color: var(--color-text-danger); background: var(--color-bg-danger); }
+  .option.disabled { cursor: default; }
+  .option-letter { min-width: 22px; font-weight: 500; color: var(--color-text-tertiary); }
+  .feedback { border-radius: var(--radius); padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 1rem; }
+  .feedback.correct { background: var(--color-bg-success); color: var(--color-text-success); border: 1px solid var(--color-text-success); }
+  .feedback.wrong { background: var(--color-bg-danger); color: var(--color-text-danger); border: 1px solid var(--color-text-danger); }
+  .feedback strong { font-weight: 500; }
+  .btn { display: inline-block; padding: 9px 22px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: opacity .15s; font-family: var(--font); }
+  .btn-primary { background: var(--color-text-info); color: #fff; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: .4; cursor: default; }
+  .btn-ghost { background: var(--color-bg-secondary); color: var(--color-text); border: 1px solid var(--color-border); }
+  .btn-ghost:hover { border-color: var(--color-border-strong); }
+  .nav { display: flex; justify-content: flex-end; align-items: center; margin-top: 0.5rem; }
+  .result-wrap { text-align: center; padding: 1rem 0 1.5rem; }
+  .score-big { font-size: 52px; font-weight: 500; line-height: 1; margin: 0.5rem 0; }
+  .score-sub { color: var(--color-text-secondary); margin-bottom: 1.5rem; font-size: 15px; }
+  .result-detail { text-align: left; display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; }
+  .result-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: var(--radius); font-size: 13px; line-height: 1.5; }
+  .result-row.ok { background: var(--color-bg-success); color: var(--color-text-success); }
+  .result-row.nok { background: var(--color-bg-danger); color: var(--color-text-danger); }
+  .result-icon { font-size: 15px; min-width: 20px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Svelte Advanced Quiz</h1>
+  <p class="subtitle">Für React-Entwickler – Advanced Svelte Tutorial</p>
+  <div id="app"></div>
+</div>
+
+<script>
+const questions = [
+  {
+    section: "Advanced Reactivity – Raw State",
+    q: "Wann sollte man $state.raw() statt $state() verwenden?",
+    code: `// Beispiel
+let data = $state.raw(poll());
+
+$effect(() => {
+  const interval = setInterval(() => {
+    data = poll(); // komplette Neuzuweisung
+  }, 200);
+  return () => clearInterval(interval);
+});`,
+    options: [
+      "$state.raw() ist nur ein Alias für $state() – es gibt keinen Unterschied",
+      "Wenn man einzelne Properties eines Objekts mutieren möchte",
+      "Wenn das Objekt nicht tief reaktiv sein muss und nur als Ganzes neu zugewiesen wird – z.B. für Performance bei häufig ersetzten Daten",
+      "$state.raw() deaktiviert die Reaktivität komplett und ist nur für Debugging"
+    ],
+    correct: 2,
+    feedback: "Richtig! $state() erstellt einen tiefen Proxy, der jede Property-Mutation trackt. Das kostet Performance, wenn die Daten sowieso sofort weggeworfen und neu zugewiesen werden. $state.raw() ist wie React's useRef für Werte, die zwar Rerenders auslösen sollen, aber keine tiefe Mutation brauchen. Wichtig: Direktes Mutieren von raw state hat keinen Effekt – nur eine komplette Neuzuweisung löst Updates aus."
+  },
+  {
+    section: "Advanced Reactivity – Raw State",
+    q: "Was passiert, wenn man eine Property eines $state.raw()-Objekts direkt mutiert?",
+    code: `let obj = $state.raw({ count: 0 });
+
+// Was passiert hier?
+obj.count++;`,
+    options: [
+      "Das UI wird genauso aktualisiert wie bei $state()",
+      "Svelte wirft einen Fehler zur Laufzeit",
+      "Die Mutation hat keinen Effekt auf das UI – nur eine Neuzuweisung von obj löst ein Update aus",
+      "obj.count wird auf NaN gesetzt"
+    ],
+    correct: 2,
+    feedback: "Genau! Direktes Mutieren von raw state hat keinen direkten Effekt auf das UI – es gibt keinen Proxy, der die Mutation abfängt. Nur obj = { count: 1 } (Neuzuweisung der ganzen Variable) würde ein Update auslösen. Das Tutorial warnt explizit: 'Mutating raw state is strongly discouraged.'"
+  },
+  {
+    section: "Reactive Classes",
+    q: "Wie macht man Klasseneigenschaften in Svelte 5 reaktiv?",
+    code: `class Box {
+  // Wie sieht die korrekte Svelte-5-Version aus?
+  width = ???;
+  height = ???;
+  area = ???;
+}`,
+    options: [
+      "Man kann Klassen-Properties nicht reaktiv machen – nur lokale Variablen in Komponenten",
+      "width = $state(0); height = $state(0); area = $derived(this.width * this.height);",
+      "this.width = reactive(0); this.height = reactive(0);",
+      "Man muss extends SvelteComponent verwenden"
+    ],
+    correct: 1,
+    feedback: "Korrekt! Runes funktionieren auch als Klassen-Field-Initialisierer: width = $state(0) macht die Property reaktiv, und area = $derived(this.width * this.height) berechnet den Wert automatisch neu. Das ist vergleichbar mit MobX in React – aber eingebaut und ohne Decorator-Syntax."
+  },
+  {
+    section: "Stores",
+    q: "Stores sind das 'alte' Reaktivitätssystem vor Svelte 5. Wie liest man einen writable Store in einem Template aus?",
+    code: `import { writable } from 'svelte/store';
+export const count = writable(0);
+
+// In der Komponente – welche Syntax ist korrekt?`,
+    options: [
+      "count.value – wie bei Vue refs",
+      "count.get() – expliziter Getter-Aufruf",
+      "{count} – direkt wie eine normale Variable",
+      "{$count} – das $-Präfix abonniert den Store automatisch"
+    ],
+    correct: 3,
+    feedback: "Richtig! Das $-Präfix ist Sveltes Auto-Subscription-Syntax für Stores. $count abonniert den Store, liest den aktuellen Wert aus und canceliert das Abo automatisch beim Unmount. In Svelte 5 mit Runes ist das meist nicht mehr nötig – aber man begegnet Stores noch in bestehendem Code und SvelteKit."
+  },
+  {
+    section: "Stores",
+    q: "Wie aktualisiert man einen writable Store in Svelte?",
+    code: `import { writable } from 'svelte/store';
+const count = writable(0);`,
+    options: [
+      "count = count + 1 – direkte Zuweisung wie bei $state()",
+      "count.value = count.value + 1",
+      "Entweder count.update(n => n + 1) oder $count += 1 in einer Komponente",
+      "count.setState(prev => prev + 1) – wie in React"
+    ],
+    correct: 2,
+    feedback: "Genau! Writable Stores haben zwei Update-Methoden: count.set(42) für direkte Werte, und count.update(n => n + 1) für Funktionen. Innerhalb einer Svelte-Komponente kann man auch $count += 1 schreiben – Svelte übersetzt das automatisch zu einem count.set()-Aufruf."
+  },
+  {
+    section: "Snippets",
+    q: "Was sind Snippets in Svelte und wofür verwendet man sie?",
+    code: `{#snippet row(emoji, description)}
+  &lt;tr&gt;
+    &lt;td&gt;{emoji}&lt;/td&gt;
+    &lt;td&gt;{description}&lt;/td&gt;
+  &lt;/tr&gt;
+{/snippet}
+
+{@render row('🙈', 'see no evil')}
+{@render row('🙉', 'hear no evil')}`,
+    options: [
+      "Snippets sind das Gleiche wie Komponenten – man kann sie in anderen Dateien importieren",
+      "Snippets sind wiederverwendbare Template-Blöcke innerhalb einer Komponente, ähnlich wie lokale Render-Funktionen in React",
+      "Snippets ersetzen {#each}-Blöcke und sind immer schneller",
+      "Snippets sind Sveltes Version von CSS-Animationen"
+    ],
+    correct: 1,
+    feedback: "Richtig! Snippets sind lokal wiederverwendbare Markup-Blöcke – ähnlich wie wenn man in React eine kleine Render-Funktion const renderRow = (emoji, desc) => &lt;tr&gt;...&lt;/tr&gt; inline definiert. Der Unterschied: Snippets sind Template-Syntax, kein JavaScript, und können auch als Props an Kind-Komponenten übergeben werden."
+  },
+  {
+    section: "Snippets",
+    q: "Wie übergibt man einen Snippet als Prop an eine Kind-Komponente?",
+    code: `&lt;!-- Eltern-Komponente --&gt;
+&lt;Table&gt;
+  {#snippet header()}
+    &lt;th&gt;Name&lt;/th&gt;&lt;th&gt;Wert&lt;/th&gt;
+  {/snippet}
+&lt;/Table&gt;
+
+&lt;!-- Table.svelte – wie empfängt man den Snippet? --&gt;`,
+    options: [
+      "let { header } = $props(); // und dann {@render header()} im Template",
+      "import { header } from './parent.svelte'",
+      "Man kann Snippets nicht als Props übergeben",
+      "&lt;slot name='header' /&gt; – wie in Svelte 4 und Web Components"
+    ],
+    correct: 0,
+    feedback: "Korrekt! Snippets, die direkt in eine Komponente hineingegeben werden, werden automatisch als Props verfügbar. In Table.svelte: let { header } = $props(); und dann {@render header()} im Template. Das ersetzt das alte slot-System aus Svelte 4 – flexibler und typsicher."
+  },
+  {
+    section: "Motion",
+    q: "Was ist der Unterschied zwischen tweened() und spring() in Svelte?",
+    options: [
+      "Kein Unterschied – beide animieren Werte, nur mit unterschiedlicher Syntax",
+      "tweened() animiert mit einer festen Dauer und Easing-Funktion; spring() simuliert eine physikalische Feder mit Stiffness und Damping",
+      "tweened() ist für Zahlen, spring() ist für Farben und Strings",
+      "spring() läuft auf dem Server, tweened() nur im Browser"
+    ],
+    correct: 1,
+    feedback: "Genau! tweened() ist deterministisch: Du gibst Dauer (z.B. 300ms) und Easing vor. spring() ist physikbasiert: Es hat stiffness (Steifigkeit) und damping (Dämpfung) – der Wert kann über das Ziel hinausschießen und einpendeln, was natürlicher wirkt. Für React-Entwickler: tweened() ≈ CSS transitions, spring() ≈ react-spring oder Framer Motion's spring."
+  },
+  {
+    section: "Context API",
+    q: "Was ist der Unterschied zwischen der Context API (setContext/getContext) und einem Svelte Store?",
+    options: [
+      "Kein Unterschied – beide teilen Daten zwischen Komponenten",
+      "Context ist an den Komponentenbaum gebunden und nicht reaktiv; Stores sind global und reaktiv",
+      "Context ist an die Komponentenhierarchie gebunden – nur Kindkomponenten haben Zugriff. Stores sind global – jede Komponente kann abonnieren",
+      "setContext() funktioniert nur in Svelte 4, nicht in Svelte 5"
+    ],
+    correct: 2,
+    feedback: "Richtig! Das ist der entscheidende Unterschied: Context ist hierarchisch – eine Kindkomponente ruft getContext() auf und bekommt den Wert ihres nächsten Elternteils, das setContext() mit demselben Key aufgerufen hat. Ein Store hingegen ist ein globales Modul – jede Komponente kann ihn importieren. Context entspricht Reacts useContext() + createContext(), Stores eher einem globalen Zustandsmanager wie Zustand oder Jotai."
+  },
+  {
+    section: "Context API",
+    q: "Wann dürfen setContext() und getContext() aufgerufen werden?",
+    code: `// Welche Version ist korrekt?
+
+// Version A
+$effect(() => {
+  setContext('key', value);
+});
+
+// Version B
+let { children } = $props();
+setContext('key', value); // direkt im Script-Block`,
+    options: [
+      "Beide Versionen sind korrekt",
+      "Nur Version A – setContext() muss in einem $effect() stehen",
+      "Nur Version B – setContext() und getContext() müssen während der Komponenteninitialisierung aufgerufen werden, nicht in Effects oder Callbacks",
+      "Beide Versionen sind falsch – man braucht createContext() wie in React"
+    ],
+    correct: 2,
+    feedback: "Genau! Wie in React's useContext()-Regeln (nur in Komponenten, nicht in Callbacks) gilt auch hier: setContext() und getContext() müssen synchron während der Initialisierung der Komponente aufgerufen werden – also direkt im &lt;script&gt;-Block, nicht in $effect(), setTimeout oder Event-Handlern. Das liegt daran, dass Svelte den Kontext beim Mounten der Komponente aufbaut."
+  }
+];
+
+let current = 0, selected = null, answered = false, results = [], showResult = false;
+
+function render() {
+  const app = document.getElementById('app');
+  if (showResult) { renderResult(app); return; }
+  const q = questions[current];
+  const pct = (current / questions.length) * 100;
+  const letters = ['A','B','C','D'];
+  let html = `
+    <div class="progress-label">${current + 1} / ${questions.length}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="section-badge">${q.section}</div>
+    <div class="question">${q.q}</div>
+    ${q.sub ? `<div class="question-sub">${q.sub}</div>` : ''}
+    ${q.code ? `<div class="code-block">${q.code}</div>` : ''}
+    <div class="options">`;
+  q.options.forEach((opt, i) => {
+    let cls = 'option';
+    if (answered) {
+      cls += ' disabled';
+      if (i === q.correct) cls += ' correct';
+      else if (i === selected && i !== q.correct) cls += ' wrong';
+    } else if (i === selected) cls += ' selected';
+    html += `<div class="${cls}" ${answered ? '' : `onclick="sel(${i})"`}><span class="option-letter">${letters[i]}</span><span>${opt}</span></div>`;
+  });
+  html += `</div>`;
+  if (answered) {
+    const ok = selected === q.correct;
+    html += `<div class="feedback ${ok ? 'correct' : 'wrong'}"><strong>${ok ? '✓ Richtig!' : '✗ Leider nicht.'}</strong> ${q.feedback}</div>`;
+  }
+  html += `<div class="nav">`;
+  if (!answered) {
+    html += `<button class="btn btn-primary" onclick="check()" ${selected === null ? 'disabled' : ''}>Antwort prüfen</button>`;
+  } else {
+    html += `<button class="btn btn-primary" onclick="next()">${current === questions.length - 1 ? 'Ergebnis anzeigen' : 'Nächste Frage →'}</button>`;
+  }
+  html += `</div>`;
+  app.innerHTML = html;
+}
+
+function renderResult(app) {
+  const score = results.filter(r => r.ok).length;
+  const pct = Math.round(score / questions.length * 100);
+  const emoji = pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪';
+  const msg = pct >= 80 ? 'Ausgezeichnet – Advanced Svelte sitzt!' : pct >= 50 ? 'Gute Basis! Ein paar Konzepte nochmal vertiefen.' : 'Nochmal ans Tutorial – dann klappt es!';
+  let html = `<div class="result-wrap"><div class="score-big">${emoji} ${score}/${questions.length}</div><div class="score-sub">${pct}% korrekt · ${msg}</div><div class="result-detail">`;
+  results.forEach((r, i) => {
+    html += `<div class="result-row ${r.ok ? 'ok' : 'nok'}"><span class="result-icon">${r.ok ? '✓' : '✗'}</span><span><strong>${questions[i].section.split('–')[0].trim()}:</strong> ${questions[i].q.substring(0, 60)}${questions[i].q.length > 60 ? '…' : ''}</span></div>`;
+  });
+  html += `</div><button class="btn btn-ghost" onclick="restart()">Nochmal versuchen</button></div>`;
+  app.innerHTML = html;
+}
+
+function sel(i) { if (answered) return; selected = i; render(); }
+function check() { if (selected === null) return; answered = true; results[current] = { ok: selected === questions[current].correct }; render(); }
+function next() { current++; selected = null; answered = false; if (current >= questions.length) showResult = true; render(); }
+function restart() { current = 0; selected = null; answered = false; results = []; showResult = false; render(); }
+render();
+</script>
+</body>
+</html>
