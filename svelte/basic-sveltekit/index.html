@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SvelteKit Quiz – Azubis</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f4f0;
+    --color-bg-info: #e6f1fb;
+    --color-bg-success: #eaf3de;
+    --color-bg-danger: #fcebeb;
+    --color-text: #1a1a18;
+    --color-text-secondary: #5f5e5a;
+    --color-text-tertiary: #888780;
+    --color-text-info: #185fa5;
+    --color-text-success: #3b6d11;
+    --color-text-danger: #a32d2d;
+    --color-border: rgba(0,0,0,0.12);
+    --color-border-strong: rgba(0,0,0,0.3);
+    --radius: 10px;
+    --font: system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-bg: #1c1c1a;
+      --color-bg-secondary: #252523;
+      --color-bg-info: #042c53;
+      --color-bg-success: #173404;
+      --color-bg-danger: #501313;
+      --color-text: #e8e7e0;
+      --color-text-secondary: #b4b2a9;
+      --color-text-tertiary: #888780;
+      --color-text-info: #85b7eb;
+      --color-text-success: #97c459;
+      --color-text-danger: #f09595;
+      --color-border: rgba(255,255,255,0.1);
+      --color-border-strong: rgba(255,255,255,0.28);
+    }
+  }
+  body { background: var(--color-bg); color: var(--color-text); font-family: var(--font); font-size: 16px; line-height: 1.6; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem 4rem; }
+  .card { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 16px; padding: 2rem; width: 100%; max-width: 660px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.25rem; }
+  .subtitle { font-size: 13px; color: var(--color-text-tertiary); margin-bottom: 1.5rem; }
+  .progress-label { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 5px; }
+  .progress-bar { background: var(--color-border); border-radius: 99px; height: 6px; margin-bottom: 1.5rem; }
+  .progress-fill { background: var(--color-text-info); height: 6px; border-radius: 99px; transition: width .4s; }
+  .section-badge { display: inline-block; font-size: 11px; font-weight: 500; background: var(--color-bg-info); color: var(--color-text-info); border-radius: 99px; padding: 2px 10px; margin-bottom: 10px; }
+  .question { font-size: 16px; font-weight: 500; line-height: 1.5; margin-bottom: 0.25rem; }
+  .question-sub { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1.1rem; line-height: 1.5; }
+  .code-block { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: var(--color-text); }
+  .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.2rem; }
+  .option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1.5px solid var(--color-border); border-radius: var(--radius); cursor: pointer; transition: border-color .15s, background .15s; font-size: 14px; line-height: 1.5; background: var(--color-bg); }
+  .option:hover:not(.disabled) { border-color: var(--color-border-strong); background: var(--color-bg-secondary); }
+  .option.selected { border-color: var(--color-text-info); background: var(--color-bg-info); }
+  .option.correct { border-color: var(--color-text-success); background: var(--color-bg-success); }
+  .option.wrong { border-color: var(--color-text-danger); background: var(--color-bg-danger); }
+  .option.disabled { cursor: default; }
+  .option-letter { min-width: 22px; font-weight: 500; color: var(--color-text-tertiary); }
+  .feedback { border-radius: var(--radius); padding: 12px 16px; font-size: 14px; line-height: 1.6; margin-bottom: 1rem; }
+  .feedback.correct { background: var(--color-bg-success); color: var(--color-text-success); border: 1px solid var(--color-text-success); }
+  .feedback.wrong { background: var(--color-bg-danger); color: var(--color-text-danger); border: 1px solid var(--color-text-danger); }
+  .feedback strong { font-weight: 500; }
+  .btn { display: inline-block; padding: 9px 22px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: opacity .15s; font-family: var(--font); }
+  .btn-primary { background: var(--color-text-info); color: #fff; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: .4; cursor: default; }
+  .btn-ghost { background: var(--color-bg-secondary); color: var(--color-text); border: 1px solid var(--color-border); }
+  .btn-ghost:hover { border-color: var(--color-border-strong); }
+  .nav { display: flex; justify-content: flex-end; align-items: center; margin-top: 0.5rem; }
+  .result-wrap { text-align: center; padding: 1rem 0 1.5rem; }
+  .score-big { font-size: 52px; font-weight: 500; line-height: 1; margin: 0.5rem 0; }
+  .score-sub { color: var(--color-text-secondary); margin-bottom: 1.5rem; font-size: 15px; }
+  .result-detail { text-align: left; display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; }
+  .result-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: var(--radius); font-size: 13px; line-height: 1.5; }
+  .result-row.ok { background: var(--color-bg-success); color: var(--color-text-success); }
+  .result-row.nok { background: var(--color-bg-danger); color: var(--color-text-danger); }
+  .result-icon { font-size: 15px; min-width: 20px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>SvelteKit Quiz</h1>
+  <p class="subtitle">Basic SvelteKit Tutorial – für React/Next.js-Entwickler</p>
+  <div id="app"></div>
+</div>
+<script>
+const questions = [
+  {
+    section: "Einführung",
+    q: "Was ist der Unterschied zwischen Svelte und SvelteKit?",
+    options: [
+      "SvelteKit ist eine neuere Version von Svelte – man braucht immer nur eines von beiden",
+      "Svelte ist ein Komponenten-Framework; SvelteKit ist ein App-Framework (wie Next.js für React), das Routing, SSR, Datenladen u.v.m. hinzufügt",
+      "SvelteKit ist nur für große Enterprise-Projekte gedacht",
+      "SvelteKit ersetzt Svelte vollständig und hat eine andere Syntax"
+    ],
+    correct: 1,
+    feedback: "Richtig! Svelte = Komponenten-Framework (wie React). SvelteKit = App-Framework (wie Next.js). SvelteKit baut auf Svelte auf und löst die harten Probleme: Routing, SSR, Datenladen, Deployment. Der Vergleich: Svelte:SvelteKit = React:Next.js."
+  },
+  {
+    section: "Routing",
+    q: "Wie definiert man Routen in SvelteKit?",
+    code: "src/routes/\n  +page.svelte          \u2192 /\n  about/\n    +page.svelte        \u2192 /about\n  blog/\n    [slug]/\n      +page.svelte      \u2192 /blog/:slug",
+    options: [
+      "Über eine zentrale router.js-Datei, ähnlich wie React Router",
+      "Über eine routes.config.js im Root-Verzeichnis",
+      "Filesystem-basiert: Jede +page.svelte-Datei in src/routes/ wird automatisch zur Route",
+      "Per Decorator @Route('/about') auf der Komponente"
+    ],
+    correct: 2,
+    feedback: "Genau! SvelteKit nutzt Filesystem-based Routing – keine Router-Konfiguration nötig. Eine +page.svelte-Datei in src/routes/about/ wird automatisch zur /about-Route. Das ist identisch zu Next.js App Router (app/about/page.tsx → /about). Dynamische Segmente werden mit eckigen Klammern definiert: [slug]."
+  },
+  {
+    section: "Routing",
+    q: "Wozu dient eine +layout.svelte-Datei?",
+    code: "src/routes/\n  +layout.svelte    \u2190 gilt f\xFCr alle Routen darunter\n  +page.svelte\n  about/\n    +page.svelte    \u2190 erbt das Layout",
+    options: [
+      "+layout.svelte ist ein optionaler CSS-Reset für die gesamte App",
+      "+layout.svelte definiert gemeinsames UI (Navigation, Footer) das für alle Kind-Routen gilt und beim Navigieren erhalten bleibt",
+      "+layout.svelte ersetzt app.html als Haupt-HTML-Template",
+      "+layout.svelte wird nur auf dem Server gerendert, nie im Browser"
+    ],
+    correct: 1,
+    feedback: "Korrekt! +layout.svelte ist SvelteKits Äquivalent zu Layouts in Next.js (layout.tsx). Es bleibt beim clientseitigen Navigieren erhalten – Navigation, Sidebar oder Footer werden nicht neu gerendert. Der Inhalt der jeweiligen Seite wird als {children} eingebettet (Svelte 5) bzw. über <slot /> (Svelte 4)."
+  },
+  {
+    section: "Datenladen",
+    q: "Was ist +page.server.js und wie unterscheidet es sich von +page.svelte?",
+    code: "// +page.server.js \u2013 l\xE4uft NUR auf dem Server\nexport async function load({ params }) {\n  const post = await db.getPost(params.slug);\n  return { post };\n}\n\n// +page.svelte \u2013 bekommt die Daten als Prop\n\x3Cscript\x3E\n  let { data } = $props(); // data.post verf\xFCgbar\n\x3C/script\x3E",
+    options: [
+      "+page.server.js ist nur eine Konvention – der Code kann auch in +page.svelte stehen",
+      "+page.server.js enthält die load()-Funktion die serverseitig läuft und Daten an +page.svelte als data-Prop liefert",
+      "+page.server.js ist ein API-Endpunkt der separat deployed wird",
+      "+page.server.js läuft nur beim Build, nicht zur Laufzeit"
+    ],
+    correct: 1,
+    feedback: "Richtig! Das ist eines der Kernkonzepte von SvelteKit: +page.server.js enthält die load()-Funktion, die IMMER auf dem Server läuft (auch bei clientseitiger Navigation). Sie gibt Daten zurück, die die Seite als data-Prop bekommt. Vergleich mit Next.js: entspricht getServerSideProps() oder dem async Server Component."
+  },
+  {
+    section: "Datenladen",
+    q: "Wie reagiert SvelteKit auf eine nicht gefundene Ressource in load()?",
+    code: "import { error } from '@sveltejs/kit';\n\nexport function load({ params }) {\n  const post = posts.find(p => p.slug === params.slug);\n\n  if (!post) error(404);  // \u2190 was passiert hier?\n\n  return { post };\n}",
+    options: [
+      "error() gibt undefined zurück und die Seite rendert leer",
+      "error() ist nur ein console.error() Wrapper",
+      "error() wirft eine Exception die SvelteKit abfängt und die passende Error-Page rendert (z.B. +error.svelte)",
+      "error() leitet automatisch zur Startseite weiter"
+    ],
+    correct: 2,
+    feedback: "Genau! error() aus '@sveltejs/kit' wirft eine spezielle Exception. SvelteKit fängt sie ab und rendert die nächste +error.svelte-Datei im Routenbaum. Das ist vergleichbar mit Next.js not-found.tsx oder error.tsx – ein sauberer, deklarativer Weg für Fehlerbehandlung ohne try/catch überall."
+  },
+  {
+    section: "Forms",
+    q: "Was sind Form Actions in SvelteKit und warum sind sie besonders?",
+    code: "// +page.server.js\nexport const actions = {\n  default: async ({ request }) => {\n    const data = await request.formData();\n    await db.createTodo(data.get('description'));\n  }\n};\n\n// +page.svelte\n\x3Cform method=\"POST\"\x3E\n  \x3Cinput name=\"description\" /\x3E\n  \x3Cbutton\x3EHinzuf\xFCgen\x3C/button\x3E\n\x3C/form\x3E",
+    options: [
+      "Form Actions sind einfach normale POST-API-Endpunkte, kein Unterschied zu +server.js",
+      "Form Actions funktionieren nur mit JavaScript aktiviert im Browser",
+      "Form Actions sind serverseitige Handler die direkt mit HTML-Forms funktionieren – auch ohne JavaScript. Mit use:enhance werden sie progressiv zu SPA-artigen Submits aufgewertet",
+      "Form Actions ersetzen fetch() komplett und können keine JSON-Daten verarbeiten"
+    ],
+    correct: 2,
+    feedback: "Super! Das ist ein Highlight von SvelteKit: Form Actions funktionieren als normales HTML-POST-Request – auch ohne JavaScript (Progressive Enhancement). Mit use:enhance auf dem <form>-Element wird das Senden per fetch() abgefangen, sodass kein Full-Page-Reload passiert. Vergleich Next.js: ähnlich wie Server Actions, aber expliziter."
+  },
+  {
+    section: "API Routes",
+    q: "Wie erstellt man einen API-Endpunkt in SvelteKit?",
+    code: "// src/routes/api/users/+server.js\n\n// Welche Implementierung ist korrekt?",
+    options: [
+      "export default function handler(req, res) { res.json({...}) } – wie in Next.js Pages Router",
+      "export const GET = async () => { ... } als benannte Export-Funktion",
+      "export function GET() { return new Response(JSON.stringify(data)) } oder mit json() Helper aus @sveltejs/kit",
+      "module.exports = { get: () => {...} } – CommonJS Syntax"
+    ],
+    correct: 2,
+    feedback: "Korrekt! In SvelteKit erstellt man eine +server.js-Datei und exportiert benannte Funktionen für HTTP-Methoden (GET, POST, PUT, PATCH, DELETE). Diese geben ein Web-Standard Response-Objekt zurück. Der json()-Helper aus @sveltejs/kit setzt automatisch den Content-Type-Header. Vergleich Next.js App Router: route.ts mit export async function GET()."
+  },
+  {
+    section: "API Routes",
+    q: "Was ist der $lib-Alias in SvelteKit?",
+    code: "// Ohne $lib \u2013 relative Imports, fehleranf\xE4llig:\nimport { db } from '../../../lib/server/database.js';\n\n// Mit $lib:\nimport { db } from '$lib/server/database.js';",
+    options: [
+      "$lib ist eine externe npm-Bibliothek die man erst installieren muss",
+      "$lib ist ein konfigurierbarer Alias für src/lib/ – der Ort für geteilten Code, damit relative Import-Pfade nicht mehr nötig sind",
+      "$lib funktioniert nur für Server-Code, nicht in .svelte-Komponenten",
+      "$lib ist Sveltes Äquivalent zu node_modules"
+    ],
+    correct: 1,
+    feedback: "Richtig! $lib ist ein vorkonfigurierter Pfad-Alias für src/lib/. Dort legt man Code ab, der von mehreren Routen genutzt wird – Datenbankverbindungen, Utilities, geteilte Komponenten. Besonders wichtig: src/lib/server/ ist für Code der NUR auf dem Server laufen darf (z.B. DB-Credentials). Kein ../../../../ mehr nötig."
+  },
+  {
+    section: "Rendering & SSR",
+    q: "SvelteKit rendert Seiten standardmäßig serverseitig (SSR). Wie kann man das pro Route anpassen?",
+    code: "// +page.server.js oder +page.js\nexport const prerender = true;  // statisch beim Build rendern\nexport const ssr = false;       // kein SSR, nur Client\nexport const csr = false;       // kein JavaScript im Browser",
+    options: [
+      "Das kann man in SvelteKit nicht ändern – SSR ist immer aktiv",
+      "Nur über svelte.config.js global für die gesamte App",
+      "Über Page Options: Exports wie prerender, ssr und csr in +page.js/+page.server.js steuern das Verhalten pro Route",
+      "Über ein <meta ssr='false'> Tag in der Svelte-Komponente"
+    ],
+    correct: 2,
+    feedback: "Genau! SvelteKit ist flexibel: Per Route kann man prerender=true setzen (statisch generiert, ideal für Blog-Posts), ssr=false (nur Client-Side, wie eine SPA) oder csr=false (kein JS im Browser, wie klassisches Server-Rendering). Das ist wie Next.js 'use client' / 'use server' – aber granularer und pro Route steuerbar."
+  },
+  {
+    section: "Routing",
+    q: "Wie navigiert man in SvelteKit zwischen Seiten und was passiert dabei?",
+    options: [
+      "Man muss immer &lt;Link href='/about'&gt;About&lt;/Link&gt; wie in React Router verwenden",
+      "Normale &lt;a href='/about'&gt;-Tags reichen – SvelteKit intercepted Klicks automatisch und macht clientseitige Navigation ohne Full-Page-Reload",
+      "Navigation geht nur über den goto()-Helper aus $app/navigation",
+      "Man muss pushState() manuell aufrufen"
+    ],
+    correct: 1,
+    feedback: "Korrekt! Das ist ein großer Komfortgewinn: Normale HTML &lt;a&gt;-Tags funktionieren einfach. SvelteKit intercept Klicks automatisch und navigiert clientseitig (kein Full-Page-Reload), während der erste Aufruf serverseitig gerendert wird. Für programmatische Navigation gibt es zusätzlich goto() aus '$app/navigation' – aber für normale Links braucht man nichts Spezielles."
+  }
+];
+
+let current = 0, selected = null, answered = false, results = [], showResult = false;
+
+function render() {
+  const app = document.getElementById('app');
+  if (showResult) { renderResult(app); return; }
+  const q = questions[current];
+  const pct = (current / questions.length) * 100;
+  const letters = ['A','B','C','D'];
+  let html = `
+    <div class="progress-label">${current + 1} / ${questions.length}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="section-badge">${q.section}</div>
+    <div class="question">${q.q}</div>
+    ${q.sub ? `<div class="question-sub">${q.sub}</div>` : ''}
+    ${q.code ? `<div class="code-block">${esc(q.code)}</div>` : ''}
+    <div class="options">`;
+  q.options.forEach((opt, i) => {
+    let cls = 'option';
+    if (answered) {
+      cls += ' disabled';
+      if (i === q.correct) cls += ' correct';
+      else if (i === selected && i !== q.correct) cls += ' wrong';
+    } else if (i === selected) cls += ' selected';
+    html += `<div class="${cls}" ${answered ? '' : `onclick="sel(${i})"`}><span class="option-letter">${letters[i]}</span><span>${opt}</span></div>`;
+  });
+  html += `</div>`;
+  if (answered) {
+    const ok = selected === q.correct;
+    html += `<div class="feedback ${ok ? 'correct' : 'wrong'}"><strong>${ok ? '✓ Richtig!' : '✗ Leider nicht.'}</strong> ${q.feedback}</div>`;
+  }
+  html += `<div class="nav">`;
+  if (!answered) {
+    html += `<button class="btn btn-primary" onclick="check()" ${selected === null ? 'disabled' : ''}>Antwort prüfen</button>`;
+  } else {
+    html += `<button class="btn btn-primary" onclick="next()">${current === questions.length - 1 ? 'Ergebnis anzeigen' : 'Nächste Frage →'}</button>`;
+  }
+  html += `</div>`;
+  app.innerHTML = html;
+}
+
+function renderResult(app) {
+  const score = results.filter(r => r.ok).length;
+  const pct = Math.round(score / questions.length * 100);
+  const emoji = pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '💪';
+  const msg = pct >= 80 ? 'Ausgezeichnet – SvelteKit verstanden!' : pct >= 50 ? 'Gute Basis! Ein paar Konzepte nochmal wiederholen.' : 'Nochmal ans Tutorial – dann klappt es!';
+  let html = `<div class="result-wrap"><div class="score-big">${emoji} ${score}/${questions.length}</div><div class="score-sub">${pct}% korrekt · ${msg}</div><div class="result-detail">`;
+  results.forEach((r, i) => {
+    html += `<div class="result-row ${r.ok ? 'ok' : 'nok'}"><span class="result-icon">${r.ok ? '✓' : '✗'}</span><span><strong>${questions[i].section}:</strong> ${questions[i].q.substring(0, 60)}${questions[i].q.length > 60 ? '…' : ''}</span></div>`;
+  });
+  html += `</div><button class="btn btn-ghost" onclick="restart()">Nochmal versuchen</button></div>`;
+  app.innerHTML = html;
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function sel(i) { if (answered) return; selected = i; render(); }
+function check() { if (selected === null) return; answered = true; results[current] = { ok: selected === questions[current].correct }; render(); }
+function next() { current++; selected = null; answered = false; if (current >= questions.length) showResult = true; render(); }
+function restart() { current = 0; selected = null; answered = false; results = []; showResult = false; render(); }
+render();
+</script>
+</body>
+</html>
